@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "dynamic_canisters_backend": {
+      "candid": "src/dynamic_canisters_backend/dynamic_canisters_backend.did",
+      "package": "dynamic_canisters_backend",
+      "type": "rust"
+    },
+    "dynamic_canisters_frontend": {
+      "dependencies": [
+        "dynamic_canisters_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/dynamic_canisters_frontend/src/index.html"
+      },
+      "source": [
+        "src/dynamic_canisters_frontend/assets",
+        "dist/dynamic_canisters_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
