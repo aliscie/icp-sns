@@ -1,3 +1,25 @@
+type BalanceResult = record { amount : nat64 };
+type BalanceResult_1 = record { amount : nat };
+type CanisterSettings = record {
+  controller : opt principal;
+  freezing_threshold : opt nat;
+  controllers : opt vec principal;
+  memory_allocation : opt nat;
+  compute_allocation : opt nat;
+};
+type CreateCanisterArgs = record {
+  cycles : nat64;
+  settings : CanisterSettings;
+};
+type CreateCanisterArgs_1 = record {
+  cycles : nat;
+  settings : CanisterSettings;
+};
+type CreateResult = record { canister_id : principal };
+type Result = variant { Ok : CreateResult; Err : text };
 service : {
-    "greet": (text) -> (text) query;
+  balance : () -> (BalanceResult) query;
+  balance128 : () -> (BalanceResult_1) query;
+  create_canister : (CreateCanisterArgs) -> (Result);
+  create_canister128 : (CreateCanisterArgs_1) -> (Result);
 }
