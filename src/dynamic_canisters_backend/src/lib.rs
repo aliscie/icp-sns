@@ -308,10 +308,28 @@ mod wallet {
 }
 
 mod user {
-    use ic_cdk::api::management_canister::http_request::{http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod};
+    use ic_cdk::api::management_canister::http_request::{http_request, CanisterHttpRequestArgument, HttpMethod};
     use ic_cdk::export::candid::{CandidType, Principal, Nat};
-    use ic_cdk::{api, update};
-    use serde::{Deserialize};
+    use ic_cdk::{api, query, update};
+    use std::cell::RefCell;
+    use serde::{Serialize, Deserialize};
+    
+    thread_local! {
+        static USER_CANISTERS: RefCell<Vec<Principal>> = Default::default();
+    }
+    
+    static USER_CANISTER_WASM_MODULE_URL: &str = "https://localhost:3000/user_canister.wasm";
+
+    #[derive(Default, PartialEq, Eq, Serialize, CandidType, Deserialize, Clone, Debug)]
+    struct User {
+        name: String,
+        age: u64,
+        email: String
+    }
+    #[derive(CandidType, Serialize, Deserialize)]
+    struct CreateUserArgs {
+        user: User
+    }
 
     #[derive(CandidType, Clone, Deserialize)]
     struct UserCanisterSettings {
@@ -365,7 +383,7 @@ mod user {
     }
 
     #[update(name = "signup_new_user")]
-    async fn signup_new_user(wasm_module: Vec<u8>) -> Result<UserCreateCanisterResult, String> {
+    async fn signup_new_user(user_args: CreateUserArgs) -> Result<UserCreateCanisterResult, String> {
         let mut settings = UserCanisterSettings {
             controllers: Some(vec![ic_cdk::api::caller(), ic_cdk::api::id()]),
             compute_allocation: None,
@@ -384,18 +402,24 @@ mod user {
         };
         let create_canister_result = create_canister_call(args).await?;
 
-        // install_user(&create_canister_result.canister_id, get_wasm_content(wasm_url).await?).await?;
-        install_user(&create_canister_result.canister_id, wasm_module).await?;
+        install_user(&create_canister_result.canister_id, get_wasm_content(USER_CANISTER_WASM_MODULE_URL.to_string()).await?).await?;
+        match api::call::call(create_canister_result.canister_id, "create_user", (user_args,)).await {
+            Ok(x) => x,
+            Err((code, msg)) => {
+                return Err(format!(
+                    "An error happened during the call: {}: {}",
+                    code as u8, msg
+                ))
+            }
+        };
+
+        USER_CANISTERS.with(|canisters| canisters.borrow_mut().push(create_canister_result.canister_id.clone()));
 
         Ok(create_canister_result)
     }
 
     #[ic_cdk::update]
     async fn get_wasm_content(url: String) -> Result<Vec<u8>, String> {
-        type Timestamp = u64;
-        let start_timestamp: Timestamp = 1682978460; //May 1, 2023 22:01:00 GMT
-        let seconds_of_time: u64 = 60; //we start with 60 seconds
-        let host = "api.pro.coinbase.com";
         let request_headers = vec![];
         
         let request = CanisterHttpRequestArgument {
@@ -490,17 +514,50 @@ mod user {
             }
         };
 
-        // Store wallet wasm
-        // let store_args = WalletStoreWASMArgs { wasm_module };
-        // match api::call::call(*canister_id, "wallet_store_wallet_wasm", (store_args,)).await {
-        //     Ok(x) => x,
-        //     Err((code, msg)) => {
-        //         return Err(format!(
-        //             "An error happened during the call: {}: {}",
-        //             code as u8, msg
-        //         ))
-        //     }
-        // };
+        #[derive(Default, CandidType, Deserialize, Clone, Debug)]
+        struct User {
+            name: String,
+            age: u64,
+            email: String
+        }
+
+        #[derive(CandidType, Deserialize)]
+        struct CreateUserArgs {
+            user: User
+        }
+
+        let create_user_arg = CreateUserArgs {
+            user: User {
+                name: "John".to_string(),
+                age: 30,
+                email: "dragon99steel@gmail.com".to_string()
+            }
+        };
+
+        match api::call::call(*canister_id, "create_user", (create_user_arg,)).await {
+            Ok(x) => x,
+            Err((code, msg)) => {
+                return Err(format!(
+                    "An error happened during the call: {}: {}",
+                    code as u8, msg
+                ))
+            }
+        };
+
         Ok(())
+    }
+
+    #[query(name = "get_user_canisters")]
+    fn get_user_canisters() -> Vec<Principal> {
+        USER_CANISTERS.with(|canisters| canisters.borrow().clone())
+    }
+
+    #[update(name = "who_am_i")]
+    async fn get_user_canister_by_id(user_canister_id: Principal) -> Result<User, String> {
+        let call_result = api::call::call::<_, (Result<User, String>, )>(user_canister_id, "get_user", (),)
+                        .await
+                        .map_err(|e| format!("Error calling get_period_range_realized_volatility: {:?}", e))?;
+        call_result.0
+                .map_err(|e| format!("Error calling get_period_range_realized_volatility: {:?}", e))        
     }
 }

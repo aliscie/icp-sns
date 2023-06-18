@@ -37,9 +37,10 @@ async fn create_user(args: CreateUserArgs) -> Result<CreateUserResult, String> {
 
 #[ic_cdk::query]
 async fn get_user() -> Result<User, String> {
-    // match USER_STORE.with(|store| store.borrow().clone()) {
-    //     Some(user) => Ok(user),
-    //     None => Err("User not found".to_string())
-    // }
     Ok(USER_STORE.with(|store| store.borrow().clone()))
+}
+
+#[ic_cdk::query]
+async fn get_user_name() -> Result<String, String> {
+    Ok(USER_STORE.with(|store| store.borrow().name.clone()))
 }

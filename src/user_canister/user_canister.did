@@ -11,8 +11,10 @@ type UserResult = record {
 };
 type CreateUserResult = variant { Ok : UserResult; Err : text };
 type GetUserResult = variant { Ok : User; Err : text };
+type GetUserNameResult = variant { Ok: text; Err : text };
 
 service : {
     create_user: (CreateUserArgs) -> (CreateUserResult);
     get_user: () -> (GetUserResult);
+    get_user_name: () -> (GetUserNameResult);
 }

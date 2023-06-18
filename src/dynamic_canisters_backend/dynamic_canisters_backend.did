@@ -1,5 +1,13 @@
 type BalanceResult = record { amount : nat64 };
 type BalanceResult_1 = record { amount : nat };
+type User = record {
+  name: text;
+  age: nat64;
+  email: text;
+};
+type CreateUserArgs = record {
+  user: User
+};
 type CanisterSettings = record {
   controller : opt principal;
   freezing_threshold : opt nat;
@@ -44,6 +52,11 @@ type GetWasmContent = variant {
   Err: text;
 };
 
+type GetUserResult = variant {
+  Ok: User;
+  Err: text;
+};
+
 service : {
   balance : () -> (BalanceResult) query;
   balance128 : () -> (BalanceResult_1) query;
@@ -51,6 +64,8 @@ service : {
   create_canister128 : (CreateCanisterArgs_1) -> (Result);
   user_create_canister: (UserCreateCanisterArgs) -> (UserCreateResult);
   user_create_canister128: (UserCreateCanisterArgs128) -> (UserCreateResult);
-  signup_new_user: (vec nat8) -> (UserCreateResult);
+  signup_new_user: (CreateUserArgs) -> (UserCreateResult);
   get_wasm_content: (text) -> (GetWasmContent);
+  get_user_canisters: () -> (vec principal);
+  who_am_i: (principal) -> (GetUserResult);
 }
