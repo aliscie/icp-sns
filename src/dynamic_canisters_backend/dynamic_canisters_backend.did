@@ -17,9 +17,40 @@ type CreateCanisterArgs_1 = record {
 };
 type CreateResult = record { canister_id : principal };
 type Result = variant { Ok : CreateResult; Err : text };
+type UserCreateResult = variant {
+  Ok : record { canister_id: principal };
+  Err: text;
+};
+
+type UserCanisterSettings = record {
+  controllers: opt vec principal;
+  compute_allocation: opt nat;
+  memory_allocation: opt nat;
+  freezing_threshold: opt nat;
+};
+
+type UserCreateCanisterArgs = record {
+  cycles: nat64;
+  settings: UserCanisterSettings;
+};
+
+type UserCreateCanisterArgs128 = record {
+  cycles: nat;
+  settings: UserCanisterSettings;
+};
+
+type GetWasmContent = variant {
+  Ok: vec nat8;
+  Err: text;
+};
+
 service : {
   balance : () -> (BalanceResult) query;
   balance128 : () -> (BalanceResult_1) query;
   create_canister : (CreateCanisterArgs) -> (Result);
   create_canister128 : (CreateCanisterArgs_1) -> (Result);
+  user_create_canister: (UserCreateCanisterArgs) -> (UserCreateResult);
+  user_create_canister128: (UserCreateCanisterArgs128) -> (UserCreateResult);
+  signup_new_user: (vec nat8) -> (UserCreateResult);
+  get_wasm_content: (text) -> (GetWasmContent);
 }

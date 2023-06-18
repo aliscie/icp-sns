@@ -17,6 +17,11 @@
         "dist/dynamic_canisters_frontend/"
       ],
       "type": "assets"
+    },
+    "user_canister": {
+      "candid": "src/user_canister/user_canister.did",
+      "package": "user_canister",
+      "type": "rust"
     }
   },
   "defaults": {

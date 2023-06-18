@@ -306,3 +306,201 @@ mod wallet {
         }
     }
 }
+
+mod user {
+    use ic_cdk::api::management_canister::http_request::{http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod};
+    use ic_cdk::export::candid::{CandidType, Principal, Nat};
+    use ic_cdk::{api, update};
+    use serde::{Deserialize};
+
+    #[derive(CandidType, Clone, Deserialize)]
+    struct UserCanisterSettings {
+        controllers: Option<Vec<Principal>>,
+        compute_allocation: Option<Nat>,
+        memory_allocation: Option<Nat>,
+        freezing_threshold: Option<Nat>,
+    }
+
+    #[derive(CandidType, Clone, Deserialize)]
+    struct UserCreateCanisterArgs<T> {
+        cycles: T,
+        settings: UserCanisterSettings,
+    }
+
+    #[derive(CandidType, Deserialize)]
+    struct UserCreateCanisterResult {
+        canister_id: Principal,
+    }
+
+    #[derive(Debug, CandidType, Deserialize)]
+    struct QueryError {
+        message: String,
+    }
+
+    #[update(name = "user_create_canister")]
+    async fn create_canister(
+        UserCreateCanisterArgs { cycles, settings}: UserCreateCanisterArgs<u64>
+    ) -> Result<UserCreateCanisterResult, String> {
+        create_canister128(UserCreateCanisterArgs {
+            cycles: cycles as u128,
+            settings,
+        }).await
+    }
+
+    #[update(name = "user_create_canister128")]
+    async fn create_canister128(
+        mut args: UserCreateCanisterArgs<u128>,
+    ) -> Result<UserCreateCanisterResult, String> {
+        let mut settings = args.settings;
+        let mut controllers = settings.controllers.unwrap_or(vec![]);
+        if controllers.is_empty() {
+            controllers.push(ic_cdk::api::caller());
+            controllers.push(ic_cdk::api::id());
+        }
+        settings.controllers = Some(controllers.clone());
+        args.settings = settings;
+        let create_canister_result = create_canister_call(args).await?;
+
+        Ok(create_canister_result)
+    }
+
+    #[update(name = "signup_new_user")]
+    async fn signup_new_user(wasm_module: Vec<u8>) -> Result<UserCreateCanisterResult, String> {
+        let mut settings = UserCanisterSettings {
+            controllers: Some(vec![ic_cdk::api::caller(), ic_cdk::api::id()]),
+            compute_allocation: None,
+            memory_allocation: None,
+            freezing_threshold: None,
+        };
+        let mut controllers = settings.controllers.unwrap_or(vec![]);
+        if controllers.is_empty() {
+            controllers.push(ic_cdk::api::caller());
+            controllers.push(ic_cdk::api::id());
+        }
+        settings.controllers = Some(controllers.clone());
+        let args = UserCreateCanisterArgs {
+            cycles: 100_000_000_000,
+            settings,
+        };
+        let create_canister_result = create_canister_call(args).await?;
+
+        // install_user(&create_canister_result.canister_id, get_wasm_content(wasm_url).await?).await?;
+        install_user(&create_canister_result.canister_id, wasm_module).await?;
+
+        Ok(create_canister_result)
+    }
+
+    #[ic_cdk::update]
+    async fn get_wasm_content(url: String) -> Result<Vec<u8>, String> {
+        type Timestamp = u64;
+        let start_timestamp: Timestamp = 1682978460; //May 1, 2023 22:01:00 GMT
+        let seconds_of_time: u64 = 60; //we start with 60 seconds
+        let host = "api.pro.coinbase.com";
+        let request_headers = vec![];
+        
+        let request = CanisterHttpRequestArgument {
+            url: url.to_string(),
+            method: HttpMethod::GET,
+            body: None,               //optional for request
+            max_response_bytes: None, //optional for request
+            transform: None,          //optional for request
+            headers: request_headers,
+        };
+
+        match http_request(request).await {
+            Ok((response,)) => {
+                // Return the content of the response body as Vec<u8>
+                Ok(response.body)
+            }
+            Err((r, m)) => {
+                let message =
+                    format!("The http_request resulted into error. RejectionCode: {r:?}, Error: {m}");
+    
+                //Return the error as a string and end the method
+                Err(message)
+            }
+        }
+    }
+
+    async fn create_canister_call(args: UserCreateCanisterArgs<u128>) -> Result<UserCreateCanisterResult, String> {
+        #[derive(CandidType)]
+        struct CreateCanisterArgument {
+            settings: Option<UserCanisterSettings>,
+        }
+
+        let create_canister_arg = CreateCanisterArgument {
+            settings: Some(args.settings),
+        };
+
+        let (create_result,): (UserCreateCanisterResult,) = match api::call::call_with_payment128(
+            Principal::management_canister(),
+            "create_canister",
+            (create_canister_arg,),
+            args.cycles,
+        )
+        .await {
+            Ok(r) => r,
+            Err((code, msg)) => return Err(format!("Error while creating a canister: {}: {}", code as u8, msg)),
+        };
+
+        Ok(create_result)
+    }
+
+    async fn install_user(canister_id: &Principal, wasm_module: Vec<u8>) -> Result<(), String> {
+        // Install Wasm
+        #[derive(CandidType, Deserialize)]
+        enum InstallMode {
+            #[serde(rename = "install")]
+            Install,
+            #[serde(rename = "reinstall")]
+            Reinstall,
+            #[serde(rename = "upgrade")]
+            Upgrade,
+        }
+
+        #[derive(CandidType, Deserialize)]
+        struct CanisterInstall {
+            mode: InstallMode,
+            canister_id: Principal,
+            #[serde(with = "serde_bytes")]
+            wasm_module: Vec<u8>,
+            arg: Vec<u8>,
+        }
+
+        let install_config = CanisterInstall {
+            mode: InstallMode::Install,
+            canister_id: *canister_id,
+            wasm_module: wasm_module.clone(),
+            arg: b" ".to_vec(),
+        };
+
+        match api::call::call(
+            Principal::management_canister(),
+            "install_code",
+            (install_config,),
+        )
+        .await
+        {
+            Ok(x) => x,
+            Err((code, msg)) => {
+                return Err(format!(
+                    "An error happened during the call: {}: {}",
+                    code as u8, msg
+                ))
+            }
+        };
+
+        // Store wallet wasm
+        // let store_args = WalletStoreWASMArgs { wasm_module };
+        // match api::call::call(*canister_id, "wallet_store_wallet_wasm", (store_args,)).await {
+        //     Ok(x) => x,
+        //     Err((code, msg)) => {
+        //         return Err(format!(
+        //             "An error happened during the call: {}: {}",
+        //             code as u8, msg
+        //         ))
+        //     }
+        // };
+        Ok(())
+    }
+}

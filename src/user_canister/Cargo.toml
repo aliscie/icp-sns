@@ -1,5 +1,5 @@
 [package]
-name = "dynamic_canisters_backend"
+name = "user_canister"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-base64 = "0.21.2"
 ic-cdk = "0.8.1"
 ic-certified-map = "0.3.0"
 candid = "0.8"

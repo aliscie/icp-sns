@@ -19,6 +19,10 @@ target/
 # frontend code
 node_modules/
 dist/
+user-canister-wasm-service/node_modules/
 
 # environment variables
 .env
+
+# docs
+doc/

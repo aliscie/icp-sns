@@ -1,0 +1,18 @@
+type User = record {
+    name: text;
+    age: nat64;
+    email: text;
+};
+type CreateUserArgs = record {
+    user: User;
+};
+type UserResult = record {
+    user_id: principal;
+};
+type CreateUserResult = variant { Ok : UserResult; Err : text };
+type GetUserResult = variant { Ok : User; Err : text };
+
+service : {
+    create_user: (CreateUserArgs) -> (CreateUserResult);
+    get_user: () -> (GetUserResult);
+}

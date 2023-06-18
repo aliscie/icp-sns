@@ -1,4 +1,5 @@
 [workspace]
 members = [
     "src/dynamic_canisters_backend",
+    "src/user_canister",
 ]
