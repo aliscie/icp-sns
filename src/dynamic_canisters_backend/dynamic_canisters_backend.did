@@ -35,6 +35,11 @@ type SNSUpdateUserCanisterResult = variant {
   Err: text;
 };
 
+type SNSUpdateUserCanisterValidateResult = variant {
+  Ok: text;
+  Err: text;
+};
+
 type UserCanisterSettings = record {
   controllers: opt vec principal;
   compute_allocation: opt nat;
@@ -74,4 +79,5 @@ service : {
   get_user_canisters: () -> (vec principal);
   who_am_i: (principal) -> (GetUserResult);
   sns_update_user_canister: (principal, CreateUserArgs) -> (SNSUpdateUserCanisterResult);
+  sns_update_user_canister_validate: (principal, CreateUserArgs) -> (SNSUpdateUserCanisterValidateResult);
 }
