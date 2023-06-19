@@ -30,6 +30,11 @@ type UserCreateResult = variant {
   Err: text;
 };
 
+type SNSUpdateUserCanisterResult = variant {
+  Ok: text;
+  Err: text;
+};
+
 type UserCanisterSettings = record {
   controllers: opt vec principal;
   compute_allocation: opt nat;
@@ -68,4 +73,5 @@ service : {
   get_wasm_content: (text) -> (GetWasmContent);
   get_user_canisters: () -> (vec principal);
   who_am_i: (principal) -> (GetUserResult);
+  sns_update_user_canister: (principal, CreateUserArgs) -> (SNSUpdateUserCanisterResult);
 }

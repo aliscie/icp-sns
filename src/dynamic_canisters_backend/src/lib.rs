@@ -554,10 +554,38 @@ mod user {
 
     #[update(name = "who_am_i")]
     async fn get_user_canister_by_id(user_canister_id: Principal) -> Result<User, String> {
-        let call_result = api::call::call::<_, (Result<User, String>, )>(user_canister_id, "get_user", (),)
-                        .await
-                        .map_err(|e| format!("Error calling get_period_range_realized_volatility: {:?}", e))?;
-        call_result.0
-                .map_err(|e| format!("Error calling get_period_range_realized_volatility: {:?}", e))        
+        let contains_target = USER_CANISTERS.with(|canisters| canisters.borrow().iter().any(|canister| canister == &user_canister_id));
+
+        if contains_target {
+            let call_result = api::call::call::<_, (Result<User, String>, )>(user_canister_id, "get_user", (),)
+                            .await
+                            .map_err(|e| format!("Error calling get_period_range_realized_volatility: {:?}", e))?;
+            call_result.0
+                    .map_err(|e| format!("Error calling get_period_range_realized_volatility: {:?}", e))
+        } else {
+            return Err(format!("User canister with id {} does not exist", user_canister_id));
+        }
     }
+
+    #[update(name = "sns_update_user_canister")]
+    async fn sns_update_user_canister(user_canister_id: Principal, user_args: CreateUserArgs) -> Result<String, String> {
+        let contains_target = USER_CANISTERS.with(|canisters| canisters.borrow().iter().any(|canister| canister == &user_canister_id));
+        if contains_target {
+            match api::call::call(user_canister_id, "create_user", (user_args,),)
+                            .await {
+                                Ok(x) => x,
+                                Err((code, msg)) => {
+                                    return Err(format!(
+                                        "An error happened during the call: {}: {}",
+                                        code as u8, msg
+                                    ))
+                                }
+                            };
+            Ok("User canister updated successfully".to_string())
+        } else {
+            return Err(format!("User canister with id {} does not exist", user_canister_id));
+        }
+    }
+
+    
 }
