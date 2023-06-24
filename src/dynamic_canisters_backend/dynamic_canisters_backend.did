@@ -78,6 +78,6 @@ service : {
   get_wasm_content: (text) -> (GetWasmContent);
   get_user_canisters: () -> (vec principal);
   who_am_i: (principal) -> (GetUserResult);
-  sns_update_user_canister: (principal, CreateUserArgs) -> (SNSUpdateUserCanisterResult);
-  sns_update_user_canister_validate: (principal, CreateUserArgs) -> (SNSUpdateUserCanisterValidateResult);
+  sns_update_user_canister: (text, CreateUserArgs) -> (SNSUpdateUserCanisterResult);
+  sns_update_user_canister_validate: (text, CreateUserArgs) -> (SNSUpdateUserCanisterValidateResult);
 }

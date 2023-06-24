@@ -1,5 +1,5 @@
-# ./update_user_canister.sh <Developer_Neuron_ID> <Username> <User_Canister_ID> <User_Age> <User_Name> <User_Email>
-# eg './update_user_canister.sh 5ee58180b48d54ca91f394a42e4c036d43a82e1095e4ff5275e0cb14c2140abc administrator bw4dl-smaaa-aaaaa-qaacq-cai 22 James dragon1227@outlook.com'
+# IC_URL=http://localhost:4943 ./scripts/sns/proposals/update_user_canister.sh<Developer_Neuron_ID> <Username> <User_Canister_ID> <User_Age> <User_Name> <User_Email>
+# eg 'IC_URL=http://localhost:4943 ./scripts/sns/proposals/update_user_canister.sh bbfa33e544044932c1e3a4c534f0be73ad84bd3904a78c1862ed5f161fd41483 administrator bw4dl-smaaa-aaaaa-qaacq-cai 22 James dragon1227@outlook.com'
 
 # Set current directory to the directory this script is in
 SCRIPT=$(readlink -f "$0")
@@ -19,8 +19,8 @@ USER_CANISTER_ID=$3
 USER_AGE=$4
 USER_NAME=$5
 USER_EMAIL=$6
-IC_URL="http://localhost:8000"
-PAYLOAD=$(didc encode '("'$USER_CANISTER_ID'", record { user=record {age='$USER_AGE':nat64; name="'$USER_NAME'":text; email="'$USER_EMAIL'":text;};})' --format blob)
+IC_URL="http://localhost:4943"
+PAYLOAD=$(didc encode '("'$USER_CANISTER_ID'":text, record { user=record {age='$USER_AGE':nat64; name="'$USER_NAME'":text; email="'$USER_EMAIL'":text;};})' --format blob)
 
 printf 'DEVELOPER_NEURON_ID: %s\n' "$DEVELOPER_NEURON_ID"
 printf 'PEM_FILE: %s\n' "$PEM_FILE"

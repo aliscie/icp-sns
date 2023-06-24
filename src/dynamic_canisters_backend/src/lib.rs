@@ -568,8 +568,9 @@ mod user {
     }
 
     #[update(name = "sns_update_user_canister")]
-    async fn sns_update_user_canister(user_canister_id: Principal, user_args: CreateUserArgs) -> Result<String, String> {
-        match api::call::call(user_canister_id, "create_user", (user_args,),)
+    async fn sns_update_user_canister(user_canister_id: String, user_args: CreateUserArgs) -> Result<String, String> {
+        let user_canister = Principal::from_text(user_canister_id).expect("Failed to convert string to principal");
+        match api::call::call(user_canister, "create_user", (user_args,),)
                             .await {
                                 Ok(x) => x,
                                 Err((code, msg)) => {
@@ -583,12 +584,13 @@ mod user {
     }
 
     #[update(name = "sns_update_user_canister_validate")]
-    async fn sns_update_user_canister_validate(user_canister_id: Principal, _user_args: CreateUserArgs) -> Result<String, String> {
-        let contains_target = USER_CANISTERS.with(|canisters| canisters.borrow().iter().any(|canister| canister == &user_canister_id));
+    async fn sns_update_user_canister_validate(user_canister_id: String, _user_args: CreateUserArgs) -> Result<String, String> {
+        let user_canister = Principal::from_text(user_canister_id).expect("Failed to convert string to principal");
+        let contains_target = USER_CANISTERS.with(|canisters| canisters.borrow().iter().any(|canister| canister == &user_canister));
         if contains_target {
             Ok("Passed SNS update user canister validate successfully".to_string())
         } else {
-            return Err(format!("User canister with id {} does not exist", user_canister_id));
+            return Err(format!("User canister with id {} does not exist", user_canister));
         }
     }
 }
